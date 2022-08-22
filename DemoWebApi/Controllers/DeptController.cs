@@ -1,8 +1,9 @@
 ﻿using DemoWebApi.Models;
+using DemoWebApi.ViewModel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
+using System;
 using System.Linq;
 
 namespace DemoWebApi.Controllers
@@ -39,7 +40,7 @@ namespace DemoWebApi.Controllers
         }
         [HttpGet]
         [Route("ListCity")]
-        public IActionResult GetCity(string? city)//by naming convetion we have to write get
+        public IActionResult GetCity([FromQuery] string? city)//by naming convetion we have to write get
         {
             var data = db.Depts.Where(d => d.Location == city).Select(d => new { id = d.Id, Name = d.Name, Location = d.Location });
           
@@ -49,10 +50,36 @@ namespace DemoWebApi.Controllers
             }
             return Ok(data);
         }
+        [HttpGet]
+        [Route("ShowDept")]
+        public IActionResult GetDeptInfo()
+        {
+            var data = db.DeptInfo_VMs.FromSqlInterpolated<DeptInfo_VM>($"DeptInfo");// by this you can call stored  procedures from database 
+            return Ok(data);
+        }
+        [HttpPost]
+        [Route("AddDept")]
+        public IActionResult PostDept(Dept dept)
+        {
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    // db.Depts.Add(dept);
+                    // db.SaveChanges();
+                    //call stored procudre 
+                    db.Database.ExecuteSqlInterpolated($"spAddRecordsToDept {dept.Id},{dept.Name},{dept.Location}");// direct adding to database
+                }
+                catch(Exception ex)
+                {
+                    return BadRequest(ex.InnerException.Message);
+                }
+            }
+            return Created("Record added succesfully", dept);
+        }
 
     }
 
 
- 
 
 }
